@@ -1,28 +1,31 @@
-package handlers 
+package handlers
 
 import (
 	"backend-assignment/database"
 	"backend-assignment/models"
 
+	"fmt"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	"fmt"
 )
 
-//Input data struct 
+//user signing handler for user registration
 
-type userDetails struct{
-	UserName  string `json:"name"`
-	Email    string  `json:"email"`
-	Password  string `json:"password"`
+//Input data struct
+
+type userDetails struct {
+	UserName string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 // signin handler
-func Signin(c*gin.Context){
+func Signin(c *gin.Context) {
 
 	var data userDetails
 	c.ShouldBindJSON(&data)
-	fmt.Println("user received",data.UserName)
+	fmt.Println("user received", data.UserName)
 
 	var existingUser models.User
 
@@ -31,11 +34,13 @@ func Signin(c*gin.Context){
 		data.Email,
 	).First(&existingUser)
 
-	if existingUser.ID!=0 {
+	fmt.Println(existingUser.Email)
+
+	if existingUser.ID != 0 {
 		c.JSON(400, gin.H{
 			"error": "Email already exists",
 		})
-		return 
+		return
 
 	}
 
@@ -53,20 +58,26 @@ func Signin(c*gin.Context){
 		return
 	}
 
-
 	//creating a user objects
 	user := models.User{
-		Name: data.UserName,
-		Email:data.Email,
-		Password:string(hashedPassword),
-		Role:"user",
+		Name:     data.UserName,
+		Email:    data.Email,
+		Password: string(hashedPassword),
+		Role:     "user",
 	}
 
 	//saving user to the database
-	database.DB.Create(&user)
+	result := database.DB.Create(&user)
 
-	c.JSON(201,gin.H{
-		"message":"User created successfully.",
-	})
+	if result.Error != nil {
+		c.JSON(400, gin.H{
+			"message": "Insertion failed",
+		})
+	} else {
+
+		c.JSON(201, gin.H{
+			"message": "User created successfully.",
+		})
+	}
 
 }
